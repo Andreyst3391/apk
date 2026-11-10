@@ -1,0 +1,53 @@
+name: Build Andrey Music APK
+
+on:
+  push:
+    paths:
+      - 'AndreyMusic-cloud-build.zip'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install Gradle
+        run: |
+          wget https://services.gradle.org/distributions/gradle-8.13-bin.zip
+          unzip -q gradle-8.13-bin.zip
+          echo "$PWD/gradle-8.13/bin" >> "$GITHUB_PATH"
+
+      - name: Extract project
+        run: |
+          unzip -q AndreyMusic-cloud-build.zip -d .
+          test -f AndreyMusic/app/build.gradle.kts
+
+      - name: Build APK
+        working-directory: AndreyMusic
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Andrey-Music-debug
+          path: AndreyMusic/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
